@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import { AdminPanel } from "@/components/admin-panel"
+import { isAdminAuthenticated } from "@/lib/auth"
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -10,18 +11,15 @@ export default function AdminPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Check if admin is authenticated
-    const adminAuth = sessionStorage.getItem("adminAuthenticated")
-    console.log("Admin auth status:", adminAuth) // Debug log
+    // <CHANGE> Use the auth helper function with localStorage
+    const authenticated = isAdminAuthenticated()
 
-    if (adminAuth === "true") {
+    if (authenticated) {
       setIsAuthenticated(true)
-      setIsLoading(false)
     } else {
-      console.log("Not authenticated, redirecting to login") // Debug log
-      setIsLoading(false)
       router.push("/admin/login")
     }
+    setIsLoading(false)
   }, [router])
 
   if (isLoading) {
@@ -33,7 +31,7 @@ export default function AdminPage() {
   }
 
   if (!isAuthenticated) {
-    return null // Will redirect in useEffect
+    return null
   }
 
   return <AdminPanel />

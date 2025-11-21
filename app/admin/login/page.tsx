@@ -3,12 +3,13 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Lock, User, ShieldAlert } from "lucide-react"
+import { Lock, User, ShieldAlert } from 'lucide-react'
+import { loginAdmin } from "@/lib/auth"
 
 export default function AdminLogin() {
   const [username, setUsername] = useState("")
@@ -22,27 +23,25 @@ export default function AdminLogin() {
     setIsLoading(true)
     setError("")
 
-    // Simple admin authentication
-    // In a real app, this would be a secure authentication system
-    if (username === "admin" && password === "admin123") {
-      // Set admin session
-      sessionStorage.setItem("adminAuthenticated", "true")
-      // Small delay to ensure session is set
-      setTimeout(() => {
-        router.push("/admin")
-      }, 100)
+    // <CHANGE> Use the new auth helper function with localStorage
+    const result = await loginAdmin(username, password)
+    
+    if (result.success) {
+      router.push("/admin")
+      router.refresh()
     } else {
-      setError("Invalid admin credentials")
+      setError(result.error || "Invalid credentials")
     }
+    
     setIsLoading(false)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
-            <ShieldAlert className="h-8 w-8 text-blue-600" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
+            <ShieldAlert className="h-8 w-8 text-blue-600 dark:text-blue-400" />
           </div>
           <CardTitle className="text-2xl font-bold">Admin Portal</CardTitle>
           <CardDescription>Sign in to access the admin dashboard</CardDescription>
@@ -79,12 +78,12 @@ export default function AdminLogin() {
                 />
               </div>
             </div>
-            {error && <div className="text-sm text-red-600 bg-red-50 p-2 rounded">{error}</div>}
+            {error && <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 p-2 rounded">{error}</div>}
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-          <div className="mt-4 text-sm text-gray-600">
+          <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
             <p className="font-medium">Demo Credentials:</p>
             <p>Username: admin</p>
             <p>Password: admin123</p>
