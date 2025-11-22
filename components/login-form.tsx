@@ -50,10 +50,48 @@ export function LoginForm({ onLogin }: LoginFormProps) {
       // Compare plaintext passwords for this demo
       if (student.password_hash === password) {
         console.log("[v0] Password match successful")
+
+        const { data: coursesData, error: coursesError } = await supabase
+          .from("student_courses")
+          .select("*")
+          .eq("student_id", student.id)
+
+        if (coursesError) {
+          console.error("[v0] Error fetching courses:", coursesError)
+        }
+
+        const { data: gradeHistoryData, error: gradeHistoryError } = await supabase
+          .from("grade_history")
+          .select("*")
+          .eq("student_id", student.id)
+
+        if (gradeHistoryError) {
+          console.error("[v0] Error fetching grade history:", gradeHistoryError)
+        }
+
+        // Transform the data to match the application's expected structure
         const studentData = {
           ...student,
           password: student.password_hash,
+          courses:
+            coursesData?.map((c: any) => ({
+              id: c.course_id,
+              name: c.course_name,
+              credits: c.credits,
+              grade: c.grade || "-",
+              gpa: c.gpa || 0,
+              status: c.status,
+              progress: c.progress || 0,
+              instructor: c.instructor || "TBD",
+              semester: c.semester,
+            })) || [],
+          gradeHistory:
+            gradeHistoryData?.map((g: any) => ({
+              semester: g.semester,
+              gpa: g.gpa,
+            })) || [],
         }
+
         onLogin(studentData)
       } else {
         console.log("[v0] Password mismatch")
