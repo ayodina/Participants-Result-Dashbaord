@@ -24,6 +24,8 @@ import {
   EyeOff,
   Upload,
   Database,
+  Pencil,
+  Save,
 } from "lucide-react"
 import {
   AlertDialog,
@@ -36,6 +38,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { getGraduationYears, formatProgramDuration } from "@/lib/student-data"
 import { FileImport } from "@/components/file-import"
 import { DataExport } from "@/components/data-export"
@@ -111,6 +121,10 @@ export function AdminPanel() {
     instructor: "",
     semester: "1Qtr",
   })
+
+  // Edit student state
+  const [editingStudent, setEditingStudent] = useState<any>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
   // Status messages
   const [statusMessage, setStatusMessage] = useState("")
@@ -410,6 +424,25 @@ export function AdminPanel() {
     } catch (error) {
       showStatus("❌ Error updating grade.", true)
     }
+  }
+
+  const handleUpdateStudent = async () => {
+    if (!editingStudent) return
+
+    try {
+      await updateStudent(editingStudent.id, editingStudent)
+      showStatus("✅ Participant updated successfully!")
+      setIsEditDialogOpen(false)
+      setEditingStudent(null)
+    } catch (error) {
+      console.error("Error updating participant:", error)
+      showStatus("❌ Error updating participant", true)
+    }
+  }
+
+  const openEditDialog = (student: any) => {
+    setEditingStudent({ ...student })
+    setIsEditDialogOpen(true)
   }
 
   // Import handlers
@@ -1104,16 +1137,30 @@ export function AdminPanel() {
                 <div className="grid gap-4">
                   {Object.values(students).map((student) => (
                     <div key={student.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <h3 className="font-semibold">{student.name}</h3>
-                        <p className="text-sm text-gray-500">
-                          {student.id} • {student.program} • {student.year}
-                        </p>
-                        <p className="text-xs text-gray-400">{student.email}</p>
-                        {student.password && <p className="text-xs text-blue-600">Password: {student.password}</p>}
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-full overflow-hidden border bg-gray-100">
+                          <img
+                            src={student.avatar || "/placeholder.svg"}
+                            alt={student.name}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold">{student.name}</h3>
+                          <p className="text-sm text-gray-500">
+                            {student.id} • {student.program} • {student.year}
+                          </p>
+                          <p className="text-xs text-gray-400">{student.email}</p>
+                          {student.password && <p className="text-xs text-blue-600">Password: {student.password}</p>}
+                        </div>
                       </div>
                       <div className="flex gap-2 items-center">
                         <Badge variant="outline">{student.courses.length} modules</Badge>
+
+                        <Button size="sm" variant="outline" onClick={() => openEditDialog(student)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button size="sm" variant="destructive">
@@ -1150,6 +1197,125 @@ export function AdminPanel() {
                 </div>
               </CardContent>
             </Card>
+
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Edit Participant</DialogTitle>
+                  <DialogDescription>
+                    Make changes to the participant's profile here. Click save when you're done.
+                  </DialogDescription>
+                </DialogHeader>
+                {editingStudent && (
+                  <div className="grid gap-4 py-4">
+                    <div className="flex items-center gap-4 justify-center mb-2">
+                      <div className="relative h-20 w-20 shrink-0">
+                        <img
+                          src={editingStudent.avatar || "/placeholder.svg"}
+                          alt="Preview"
+                          className="h-full w-full rounded-full object-cover border-2 border-gray-200"
+                        />
+                      </div>
+                      <div className="w-full max-w-[150px]">
+                        <Label htmlFor="edit-avatar-upload" className="cursor-pointer">
+                          <div className="flex items-center gap-2 px-3 py-2 border rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm">
+                            <Upload className="h-3 w-3" />
+                            <span>Change Photo</span>
+                          </div>
+                        </Label>
+                        <Input
+                          id="edit-avatar-upload"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              const reader = new FileReader()
+                              reader.onloadend = () => {
+                                setEditingStudent({ ...editingStudent, avatar: reader.result as string })
+                              }
+                              reader.readAsDataURL(file)
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="edit-name" className="text-right">
+                        Name
+                      </Label>
+                      <Input
+                        id="edit-name"
+                        value={editingStudent.name}
+                        onChange={(e) => setEditingStudent({ ...editingStudent, name: e.target.value })}
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="edit-email" className="text-right">
+                        Email
+                      </Label>
+                      <Input
+                        id="edit-email"
+                        value={editingStudent.email}
+                        onChange={(e) => setEditingStudent({ ...editingStudent, email: e.target.value })}
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="edit-program" className="text-right">
+                        Program
+                      </Label>
+                      <Select
+                        value={editingStudent.program}
+                        onValueChange={(value) => setEditingStudent({ ...editingStudent, program: value })}
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select program" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(programsCatalog).map(([programName, program]) => (
+                            <SelectItem key={programName} value={programName}>
+                              {program.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="edit-year" className="text-right">
+                        Year
+                      </Label>
+                      <Select
+                        value={editingStudent.year}
+                        onValueChange={(value) => setEditingStudent({ ...editingStudent, year: value })}
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getGraduationYears().map((year) => (
+                            <SelectItem key={year} value={year.toString()}>
+                              {year}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleUpdateStudent}>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Changes
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             <Card>
               <CardHeader>

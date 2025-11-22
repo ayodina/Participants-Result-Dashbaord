@@ -23,6 +23,8 @@ import {
   Target,
   BarChart3,
   Camera,
+  Save,
+  X,
 } from "lucide-react"
 import { calculateGPA } from "@/lib/student-data"
 
@@ -33,6 +35,7 @@ interface DashboardProps {
 
 export function Dashboard({ student, onLogout }: DashboardProps) {
   const [activeTab, setActiveTab] = useState("overview")
+  const [newAvatar, setNewAvatar] = useState<string | null>(null)
   const { updateStudent } = useStudents()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -75,9 +78,23 @@ export function Dashboard({ student, onLogout }: DashboardProps) {
     if (file) {
       const reader = new FileReader()
       reader.onloadend = () => {
-        updateStudent(student.id, { avatar: reader.result as string })
+        setNewAvatar(reader.result as string)
       }
       reader.readAsDataURL(file)
+    }
+  }
+
+  const handleSaveAvatar = async () => {
+    if (newAvatar) {
+      await updateStudent(student.id, { avatar: newAvatar })
+      setNewAvatar(null)
+    }
+  }
+
+  const handleCancelAvatar = () => {
+    setNewAvatar(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
     }
   }
 
@@ -112,7 +129,7 @@ export function Dashboard({ student, onLogout }: DashboardProps) {
               <div className="flex items-center space-x-4">
                 <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                   <Avatar className="h-16 w-16 border-2 border-white transition-opacity group-hover:opacity-80">
-                    <AvatarImage src={student.avatar || "/placeholder.svg"} alt={student.name} />
+                    <AvatarImage src={newAvatar || student.avatar || "/placeholder.svg"} alt={student.name} />
                     <AvatarFallback className="bg-white text-blue-600 text-lg font-bold">
                       {student.name
                         .split(" ")
@@ -136,6 +153,23 @@ export function Dashboard({ student, onLogout }: DashboardProps) {
                   <p className="text-blue-100">
                     {student.program} • {student.semester} • Class of {student.year}
                   </p>
+                  {newAvatar && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <Button size="sm" variant="secondary" className="h-7 text-xs" onClick={handleSaveAvatar}>
+                        <Save className="h-3 w-3 mr-1" />
+                        Save Picture
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs text-white hover:text-white hover:bg-white/20"
+                        onClick={handleCancelAvatar}
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="text-right hidden sm:block">
