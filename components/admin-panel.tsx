@@ -22,10 +22,10 @@ import {
   FileSpreadsheet,
   Eye,
   EyeOff,
-  Upload,
   Database,
   Pencil,
   Save,
+  Search,
 } from "lucide-react"
 import {
   AlertDialog,
@@ -46,7 +46,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { getGraduationYears, formatProgramDuration } from "@/lib/student-data"
+import { formatProgramDuration } from "@/lib/student-data"
 import { FileImport } from "@/components/file-import"
 import { DataExport } from "@/components/data-export"
 import {
@@ -89,6 +89,9 @@ export function AdminPanel() {
     avatar: "/placeholder.svg?height=100&width=100",
     courses: [],
     gradeHistory: [{ semester: "1Qtr", gpa: 0 }],
+    parish: "",
+    deanery: "",
+    phone: "",
   })
 
   // Password visibility state
@@ -129,6 +132,8 @@ export function AdminPanel() {
   // Status messages
   const [statusMessage, setStatusMessage] = useState("")
   const [isInitializing, setIsInitializing] = useState(false)
+
+  const [searchTerm, setSearchTerm] = useState("")
 
   const showStatus = (message: string, isError = false) => {
     setStatusMessage(message)
@@ -192,6 +197,9 @@ export function AdminPanel() {
         avatar: "/placeholder.svg?height=100&width=100",
         courses: [],
         gradeHistory: [{ semester: "1Qtr", gpa: 0 }],
+        parish: "",
+        deanery: "",
+        phone: "",
       })
     } catch (error) {
       console.error("Error adding student:", error)
@@ -465,6 +473,9 @@ export function AdminPanel() {
         avatar: "/placeholder.svg?height=100&width=100",
         courses: students[studentId]?.courses || [],
         gradeHistory: students[studentId]?.gradeHistory || [{ semester: "1Qtr", gpa: 0 }],
+        parish: row.parish?.trim() || "",
+        deanery: row.deanery?.trim() || "",
+        phone: row.phone?.trim() || "",
       }
 
       if (students[studentId]) {
@@ -647,6 +658,9 @@ export function AdminPanel() {
       program: student.program,
       year: student.year,
       semester: student.semester,
+      parish: student.parish,
+      deanery: student.deanery,
+      phone: student.phone,
     }))
   }
 
@@ -719,6 +733,19 @@ export function AdminPanel() {
     }
   }
 
+  const filteredStudents = Object.values(students)
+    .filter((student) => {
+      const term = searchTerm.toLowerCase()
+      return (
+        student.name.toLowerCase().includes(term) ||
+        student.id.toLowerCase().includes(term) ||
+        student.email.toLowerCase().includes(term) ||
+        (student.parish && student.parish.toLowerCase().includes(term)) ||
+        (student.deanery && student.deanery.toLowerCase().includes(term))
+      )
+    })
+    .sort((a, b) => a.name.localeCompare(b.name))
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
       {/* Header */}
@@ -772,7 +799,7 @@ export function AdminPanel() {
           </CardHeader>
         </Card>
 
-        <Tabs defaultValue="import" className="space-y-6">
+        <Tabs defaultValue="students" className="space-y-6">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="import">
               <FileSpreadsheet className="h-4 w-4 mr-2" />
@@ -1129,260 +1156,68 @@ export function AdminPanel() {
           </TabsContent>
 
           <TabsContent value="students" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Current Participants ({Object.keys(students).length})</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4">
-                  {Object.values(students).map((student) => (
-                    <div key={student.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-full overflow-hidden border bg-gray-100">
-                          <img
-                            src={student.avatar || "/placeholder.svg"}
-                            alt={student.name}
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold">{student.name}</h3>
-                          <p className="text-sm text-gray-500">
-                            {student.id} • {student.program} • {student.year}
-                          </p>
-                          <p className="text-xs text-gray-400">{student.email}</p>
-                          {student.password && <p className="text-xs text-blue-600">Password: {student.password}</p>}
-                        </div>
-                      </div>
-                      <div className="flex gap-2 items-center">
-                        <Badge variant="outline">{student.courses.length} modules</Badge>
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Student Management</h2>
+              <Button
+                onClick={() => document.getElementById("add-student-form")?.scrollIntoView({ behavior: "smooth" })}
+              >
+                <Plus className="mr-2 h-4 w-4" /> Add New Student
+              </Button>
+            </div>
 
-                        <Button size="sm" variant="outline" onClick={() => openEditDialog(student)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+            <div className="flex items-center space-x-2 max-w-md">
+              <div className="relative w-full">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search by name, ID, email, parish..."
+                  className="pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
 
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="destructive">
-                              <UserX className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Participant</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete {student.name}? This action cannot be undone and will
-                                remove all their module data.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteStudent(student.id)}
-                                className="bg-red-600 hover:bg-red-700"
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </div>
-                  ))}
-                  {Object.keys(students).length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      <p>No participants found. Add your first participant below.</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Edit Participant</DialogTitle>
-                  <DialogDescription>
-                    Make changes to the participant's profile here. Click save when you're done.
-                  </DialogDescription>
-                </DialogHeader>
-                {editingStudent && (
-                  <div className="grid gap-4 py-4">
-                    <div className="flex items-center gap-4 justify-center mb-2">
-                      <div className="relative h-20 w-20 shrink-0">
-                        <img
-                          src={editingStudent.avatar || "/placeholder.svg"}
-                          alt="Preview"
-                          className="h-full w-full rounded-full object-cover border-2 border-gray-200"
-                        />
-                      </div>
-                      <div className="w-full max-w-[150px]">
-                        <Label htmlFor="edit-avatar-upload" className="cursor-pointer">
-                          <div className="flex items-center gap-2 px-3 py-2 border rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm">
-                            <Upload className="h-3 w-3" />
-                            <span>Change Photo</span>
-                          </div>
-                        </Label>
-                        <Input
-                          id="edit-avatar-upload"
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) {
-                              const reader = new FileReader()
-                              reader.onloadend = () => {
-                                setEditingStudent({ ...editingStudent, avatar: reader.result as string })
-                              }
-                              reader.readAsDataURL(file)
-                            }
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="edit-name" className="text-right">
-                        Name
-                      </Label>
-                      <Input
-                        id="edit-name"
-                        value={editingStudent.name}
-                        onChange={(e) => setEditingStudent({ ...editingStudent, name: e.target.value })}
-                        className="col-span-3"
-                      />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="edit-email" className="text-right">
-                        Email
-                      </Label>
-                      <Input
-                        id="edit-email"
-                        value={editingStudent.email}
-                        onChange={(e) => setEditingStudent({ ...editingStudent, email: e.target.value })}
-                        className="col-span-3"
-                      />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="edit-program" className="text-right">
-                        Program
-                      </Label>
-                      <Select
-                        value={editingStudent.program}
-                        onValueChange={(value) => setEditingStudent({ ...editingStudent, program: value })}
-                      >
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select program" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(programsCatalog).map(([programName, program]) => (
-                            <SelectItem key={programName} value={programName}>
-                              {program.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="edit-year" className="text-right">
-                        Year
-                      </Label>
-                      <Select
-                        value={editingStudent.year}
-                        onValueChange={(value) => setEditingStudent({ ...editingStudent, year: value })}
-                      >
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select year" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getGraduationYears().map((year) => (
-                            <SelectItem key={year} value={year.toString()}>
-                              {year}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                )}
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleUpdateStudent}>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Changes
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
-            <Card>
+            {/* Add Student Form */}
+            <Card id="add-student-form">
               <CardHeader>
                 <CardTitle>Add New Participant</CardTitle>
+                <CardDescription>Enter the details for the new participant.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-4 mb-4">
-                  {/* Avatar preview and upload */}
-                  <div className="relative h-20 w-20 shrink-0">
-                    <img
-                      src={newStudent.avatar || "/placeholder.svg"}
-                      alt="Preview"
-                      className="h-full w-full rounded-full object-cover border-2 border-gray-200"
-                    />
-                  </div>
-                  <div className="w-full max-w-xs">
-                    <Label htmlFor="avatar-upload" className="cursor-pointer">
-                      <div className="flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                        <Upload className="h-4 w-4" />
-                        <span className="text-sm">Upload Photo</span>
-                      </div>
-                    </Label>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="student-id">Participant ID *</Label>
                     <Input
-                      id="avatar-upload"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleAvatarUpload}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Recommended: Square image, max 2MB</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="studentId">Participant ID *</Label>
-                    <Input
-                      id="studentId"
-                      placeholder="PT005"
+                      id="student-id"
+                      placeholder="e.g., ST123"
                       value={newStudent.id}
-                      onChange={(e) => setNewStudent({ ...newStudent, id: e.target.value.toUpperCase() })}
+                      onChange={(e) => setNewStudent({ ...newStudent, id: e.target.value })}
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="studentName">Full Name *</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="student-name">Full Name *</Label>
                     <Input
-                      id="studentName"
-                      placeholder="John Doe"
+                      id="student-name"
+                      placeholder="e.g., John Doe"
                       value={newStudent.name}
                       onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="studentEmail">Email</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="student-email">Email</Label>
                     <Input
-                      id="studentEmail"
-                      placeholder="participant@university.edu"
+                      id="student-email"
+                      placeholder="e.g., john.doe@example.com"
                       value={newStudent.email}
                       onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
                     />
                   </div>
-                  {/* Password input section with properly closed tags */}
-                  <div>
-                    <Label htmlFor="studentPassword">Password (optional)</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="student-password">Password</Label>
                     <div className="relative">
                       <Input
-                        id="studentPassword"
+                        id="student-password"
                         type={showPassword ? "text" : "password"}
                         placeholder="Auto-generated if empty"
                         value={newStudent.password}
@@ -1397,18 +1232,16 @@ export function AdminPanel() {
                         onClick={() => setShowPassword(!showPassword)}
                       >
                         {showPassword ? (
-                          <EyeOff className="h-4 w-4 text-gray-400" />
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
                         ) : (
-                          <Eye className="h-4 w-4 text-gray-400" />
+                          <Eye className="h-4 w-4 text-muted-foreground" />
                         )}
                       </Button>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Leave empty to auto-generate: firstname + last 3 digits of ID
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">Leave empty to auto-generate.</p>
                   </div>
-                  <div>
-                    <Label htmlFor="program">Program *</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="student-program">Program *</Label>
                     <Select
                       value={newStudent.program}
                       onValueChange={(value) => setNewStudent({ ...newStudent, program: value })}
@@ -1425,49 +1258,263 @@ export function AdminPanel() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label htmlFor="year">Graduation Year *</Label>
-                    <Select
+                  <div className="space-y-2">
+                    <Label htmlFor="student-year">Year/Level *</Label>
+                    <Input
+                      id="student-year"
+                      placeholder="e.g., 2025"
                       value={newStudent.year}
-                      onValueChange={(value) => setNewStudent({ ...newStudent, year: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select graduation year" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {getGraduationYears().map((year) => (
-                          <SelectItem key={year} value={year.toString()}>
-                            {year}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      onChange={(e) => setNewStudent({ ...newStudent, year: e.target.value })}
+                    />
                   </div>
-                  <div>
-                    <Label htmlFor="semester">Current Semester</Label>
-                    <Select
-                      value={newStudent.semester}
-                      onValueChange={(value) => setNewStudent({ ...newStudent, semester: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select semester" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1Qtr">1Qtr</SelectItem>
-                        <SelectItem value="2Qtr">2Qtr</SelectItem>
-                        <SelectItem value="3Qtr">3Qtr</SelectItem>
-                        <SelectItem value="4Qtr">4Qtr</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="space-y-2">
+                    <Label htmlFor="student-phone">Phone Number</Label>
+                    <Input
+                      id="student-phone"
+                      placeholder="e.g., 555-0123"
+                      value={newStudent.phone}
+                      onChange={(e) => setNewStudent({ ...newStudent, phone: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="student-parish">Parish</Label>
+                    <Input
+                      id="student-parish"
+                      placeholder="e.g., St. Mary"
+                      value={newStudent.parish}
+                      onChange={(e) => setNewStudent({ ...newStudent, parish: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="student-deanery">Deanery</Label>
+                    <Input
+                      id="student-deanery"
+                      placeholder="e.g., North Deanery"
+                      value={newStudent.deanery}
+                      onChange={(e) => setNewStudent({ ...newStudent, deanery: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="student-avatar">Profile Picture</Label>
+                    <div className="flex items-center gap-4">
+                      <div className="h-16 w-16 rounded-full overflow-hidden bg-muted border">
+                        <img
+                          src={newStudent.avatar || "/placeholder.svg?height=100&width=100"}
+                          alt="Avatar Preview"
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <Input id="student-avatar" type="file" accept="image/*" onChange={handleAvatarUpload} />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Recommended: Square image, max 2MB.</p>
                   </div>
                 </div>
-                <Button className="w-full" onClick={handleAddStudent}>
+                <Button className="mt-6 w-full" onClick={handleAddStudent}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Participant
                 </Button>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>All Participants ({filteredStudents.length} found)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {filteredStudents.map((student) => (
+                    <Card key={student.id} className="overflow-hidden">
+                      <CardContent className="p-0">
+                        <div className="flex items-center p-4 gap-4">
+                          {/* Avatar */}
+                          <div className="h-12 w-12 rounded-full overflow-hidden bg-muted shrink-0">
+                            <img
+                              src={student.avatar || "/placeholder.svg?height=100&width=100"}
+                              alt={student.name}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+
+                          <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <h3 className="font-bold truncate">{student.name}</h3>
+                              <p className="text-sm text-muted-foreground truncate">ID: {student.id}</p>
+                              {student.phone && (
+                                <p className="text-xs text-muted-foreground flex items-center mt-1">
+                                  📞 {student.phone}
+                                </p>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-sm truncate">{student.program}</p>
+                              <p className="text-sm text-muted-foreground">Year: {student.year}</p>
+                              <p className="text-xs text-muted-foreground truncate mt-1">✉️ {student.email}</p>
+                            </div>
+                            <div>
+                              {student.parish && <p className="text-sm truncate">Parish: {student.parish}</p>}
+                              {student.deanery && (
+                                <p className="text-sm text-muted-foreground truncate">Deanery: {student.deanery}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">{student.courses.length} modules</Badge>
+
+                            <Button size="sm" variant="outline" onClick={() => openEditDialog(student)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="destructive">
+                                  <UserX className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Participant</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete {student.name}? This action cannot be undone and
+                                    will remove all their module data.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteStudent(student.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {filteredStudents.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No participants found matching your search criteria.</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
+
+          {/* Edit Student Dialog */}
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>Edit Participant</DialogTitle>
+                <DialogDescription>Make changes to the participant's profile.</DialogDescription>
+              </DialogHeader>
+
+              {editingStudent && (
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-name">Full Name</Label>
+                      <Input
+                        id="edit-name"
+                        value={editingStudent.name}
+                        onChange={(e) => setEditingStudent({ ...editingStudent, name: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-email">Email</Label>
+                      <Input
+                        id="edit-email"
+                        value={editingStudent.email}
+                        onChange={(e) => setEditingStudent({ ...editingStudent, email: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-program">Program</Label>
+                      <Input
+                        id="edit-program"
+                        value={editingStudent.program}
+                        onChange={(e) => setEditingStudent({ ...editingStudent, program: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-year">Year</Label>
+                      <Input
+                        id="edit-year"
+                        value={editingStudent.year}
+                        onChange={(e) => setEditingStudent({ ...editingStudent, year: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-phone">Phone Number</Label>
+                      <Input
+                        id="edit-phone"
+                        value={editingStudent.phone || ""}
+                        onChange={(e) => setEditingStudent({ ...editingStudent, phone: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-parish">Parish</Label>
+                      <Input
+                        id="edit-parish"
+                        value={editingStudent.parish || ""}
+                        onChange={(e) => setEditingStudent({ ...editingStudent, parish: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-deanery">Deanery</Label>
+                      <Input
+                        id="edit-deanery"
+                        value={editingStudent.deanery || ""}
+                        onChange={(e) => setEditingStudent({ ...editingStudent, deanery: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="edit-avatar">Profile Picture</Label>
+                      <div className="flex items-center gap-4">
+                        <div className="h-16 w-16 rounded-full overflow-hidden bg-muted border">
+                          <img
+                            src={editingStudent.avatar || "/placeholder.svg?height=100&width=100"}
+                            alt="Preview"
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <Input
+                          id="edit-avatar"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              const reader = new FileReader()
+                              reader.onloadend = () => {
+                                setEditingStudent({ ...editingStudent, avatar: reader.result as string })
+                              }
+                              reader.readAsDataURL(file)
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdateStudent}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           <TabsContent value="enrollments" className="space-y-6">
             <Card>

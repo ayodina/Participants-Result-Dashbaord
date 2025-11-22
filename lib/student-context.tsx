@@ -88,6 +88,9 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
           year: student.year,
           semester: student.semester,
           avatar: student.avatar || "/placeholder.svg?height=100&width=100",
+          parish: student.parish || "",
+          deanery: student.deanery || "",
+          phone: student.phone || "",
           courses: studentCourses.map((c: any) => ({
             id: c.course_id,
             name: c.course_name,
@@ -184,6 +187,9 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
         year: student.year,
         semester: student.semester,
         avatar: student.avatar === "/placeholder.svg?height=100&width=100" ? null : student.avatar,
+        parish: student.parish,
+        deanery: student.deanery,
+        phone: student.phone,
       })
 
       if (error) throw error
@@ -218,6 +224,9 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
       if (data.password) {
         updateData.password_hash = data.password
       }
+      if (data.parish !== undefined) updateData.parish = data.parish
+      if (data.deanery !== undefined) updateData.deanery = data.deanery
+      if (data.phone !== undefined) updateData.phone = data.phone
 
       const { error } = await supabase.from("students").update(updateData).eq("id", studentId)
 

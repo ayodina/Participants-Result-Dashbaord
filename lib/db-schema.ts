@@ -19,6 +19,9 @@ create table if not exists students (
   year text not null,
   semester text not null,
   avatar text,
+  parish text,
+  deanery text,
+  phone text,
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 
@@ -131,12 +134,15 @@ insert into courses (id, name, credits, department, instructor) values
 on conflict (id) do nothing;
 
 -- Seed Students
-insert into students (id, name, email, password_hash, program, year, semester, avatar) values
-('ST001', 'John Smith', 'john.smith@university.edu', '$2a$10$X8qJ9Z1Z9Z1Z9Z1Z9Z1Z9.', 'Computer Science', '2025', '1Qtr', '/placeholder.svg?height=100&width=100'),
-('ST002', 'Emily Johnson', 'emily.johnson@university.edu', '$2a$10$X8qJ9Z1Z9Z1Z9Z1Z9Z1Z9.', 'Information Technology', '2026', '1Qtr', '/placeholder.svg?height=100&width=100'),
-('ST003', 'Michael Brown', 'michael.brown@university.edu', '$2a$10$X8qJ9Z1Z9Z1Z9Z1Z9Z1Z9.', 'Data Science', '2025', '1Qtr', '/placeholder.svg?height=100&width=100'),
-('ST004', 'Sarah Davis', 'sarah.davis@university.edu', '$2a$10$X8qJ9Z1Z9Z1Z9Z1Z9Z1Z9.', 'Software Engineering', '2027', '1Qtr', '/placeholder.svg?height=100&width=100')
-on conflict (id) do nothing;
+insert into students (id, name, email, password_hash, program, year, semester, avatar, parish, deanery, phone) values
+('ST001', 'John Smith', 'john.smith@university.edu', '$2a$10$X8qJ9Z1Z9Z1Z9Z1Z9Z1Z9.', 'Computer Science', '2025', '1Qtr', '/placeholder.svg?height=100&width=100', 'St. Mary', 'North Deanery', '555-0101'),
+('ST002', 'Emily Johnson', 'emily.johnson@university.edu', '$2a$10$X8qJ9Z1Z9Z1Z9Z1Z9Z1Z9.', 'Information Technology', '2026', '1Qtr', '/placeholder.svg?height=100&width=100', 'St. Joseph', 'South Deanery', '555-0102'),
+('ST003', 'Michael Brown', 'michael.brown@university.edu', '$2a$10$X8qJ9Z1Z9Z1Z9Z1Z9Z1Z9.', 'Data Science', '2025', '1Qtr', '/placeholder.svg?height=100&width=100', 'Holy Trinity', 'East Deanery', '555-0103'),
+('ST004', 'Sarah Davis', 'sarah.davis@university.edu', '$2a$10$X8qJ9Z1Z9Z1Z9Z1Z9Z1Z9.', 'Software Engineering', '2027', '1Qtr', '/placeholder.svg?height=100&width=100', 'St. Peter', 'West Deanery', '555-0104')
+on conflict (id) do update set 
+  parish = EXCLUDED.parish,
+  deanery = EXCLUDED.deanery,
+  phone = EXCLUDED.phone;
 
 -- Seed Student Courses
 insert into student_courses (student_id, course_id, course_name, credits, grade, gpa, status, progress, instructor, semester) values

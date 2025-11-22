@@ -61,6 +61,23 @@ async function main() {
       }
     }
     console.log(`Data seeded: ${successCount} statements executed successfully.`)
+
+    console.log("Adding new columns if missing...")
+    // Check if the new SQL file exists before trying to read it
+    const migrationFile = path.join(process.cwd(), "scripts/003_add_contact_details.sql")
+    if (fs.existsSync(migrationFile)) {
+      const addColumnsSql = fs.readFileSync(migrationFile, "utf8")
+      const addStatements = addColumnsSql.split(";").filter((stmt) => stmt.trim().length > 0)
+
+      for (const stmt of addStatements) {
+        try {
+          await sql(stmt)
+        } catch (e: any) {
+          console.log("Note on adding columns:", e.message)
+        }
+      }
+      console.log("Columns check completed.")
+    }
   } catch (error) {
     console.error("Migration failed:", error)
     process.exit(1)
