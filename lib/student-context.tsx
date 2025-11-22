@@ -49,7 +49,14 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
       // Load students
       const { data: studentsData, error: studentsError } = await supabase.from("students").select("*")
 
-      if (studentsError) throw studentsError
+      if (studentsError) {
+        // If table doesn't exist, we might get a specific error code like '42P01'
+        if (studentsError.code === "42P01") {
+          console.warn("Tables do not exist yet. Waiting for initialization.")
+          // We can leave state empty or set a flag
+        }
+        throw studentsError
+      }
 
       // Load student courses
       const { data: coursesData, error: coursesError } = await supabase.from("student_courses").select("*")

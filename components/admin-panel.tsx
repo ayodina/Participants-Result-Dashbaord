@@ -12,7 +12,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { useStudents } from "@/lib/student-context"
-import { Plus, LogOut, ShieldAlert, Trash2, UserX, BookPlus, FileSpreadsheet, Eye, EyeOff, Upload } from "lucide-react"
+import {
+  Plus,
+  LogOut,
+  ShieldAlert,
+  Trash2,
+  UserX,
+  BookPlus,
+  FileSpreadsheet,
+  Eye,
+  EyeOff,
+  Upload,
+  Database,
+} from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -102,6 +114,7 @@ export function AdminPanel() {
 
   // Status messages
   const [statusMessage, setStatusMessage] = useState("")
+  const [isInitializing, setIsInitializing] = useState(false)
 
   const showStatus = (message: string, isError = false) => {
     setStatusMessage(message)
@@ -645,6 +658,34 @@ export function AdminPanel() {
     router.push("/admin/login")
   }
 
+  const handleInitializeDb = async () => {
+    if (!confirm("This will reset the database tables and seed initial data. Are you sure?")) return
+
+    setIsInitializing(true)
+    showStatus("Initializing database...", false)
+
+    try {
+      const response = await fetch("/api/init-db", {
+        method: "POST",
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        showStatus("✅ Database initialized successfully! Please refresh the page.")
+        setTimeout(() => {
+          window.location.reload()
+        }, 1500)
+      } else {
+        showStatus(`❌ ${result.error}`, true)
+      }
+    } catch (error) {
+      showStatus("❌ Failed to connect to server", true)
+    } finally {
+      setIsInitializing(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
       {/* Header */}
@@ -658,6 +699,16 @@ export function AdminPanel() {
             </div>
           </div>
           <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleInitializeDb}
+              disabled={isInitializing}
+              className="hidden md:flex bg-transparent"
+            >
+              <Database className="h-4 w-4 mr-2" />
+              {isInitializing ? "Initializing..." : "Reset DB"}
+            </Button>
             <ModeToggle />
             <Button variant="outline" size="sm" onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-2" />
