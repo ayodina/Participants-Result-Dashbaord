@@ -134,6 +134,16 @@ export function AdminPanel() {
 
   const [searchTerm, setSearchTerm] = useState("")
 
+  // Filtered students based on search term
+  const filteredStudents = Object.values(students).filter(
+    (student) =>
+      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.parish.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.deanery.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
   const showStatus = (message: string, isError = false) => {
     setStatusMessage(message)
     setTimeout(() => setStatusMessage(""), 3000)
@@ -756,18 +766,21 @@ export function AdminPanel() {
     }
   }
 
-  const filteredStudents = Object.values(students)
-    .filter((student) => {
-      const term = searchTerm.toLowerCase()
-      return (
-        student.name.toLowerCase().includes(term) ||
-        student.id.toLowerCase().includes(term) ||
-        student.email.toLowerCase().includes(term) ||
-        (student.parish && student.parish.toLowerCase().includes(term)) ||
-        (student.deanery && student.deanery.toLowerCase().includes(term))
-      )
-    })
-    .sort((a, b) => a.name.localeCompare(b.name))
+  const studentsByDeanery = filteredStudents.reduce(
+    (acc, student) => {
+      const deanery = student.deanery || "Unassigned Deanery"
+      if (!acc[deanery]) {
+        acc[deanery] = {}
+      }
+      const parish = student.parish || "Unassigned Parish"
+      if (!acc[deanery][parish]) {
+        acc[deanery][parish] = []
+      }
+      acc[deanery][parish].push(student)
+      return acc
+    },
+    {} as Record<string, Record<string, typeof filteredStudents>>,
+  )
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
@@ -1342,86 +1355,189 @@ export function AdminPanel() {
 
             <Card>
               <CardHeader>
-                <CardTitle>All Participants ({filteredStudents.length} found)</CardTitle>
+                <CardTitle>
+                  All Participants ({searchTerm ? filteredStudents.length : Object.keys(students).length} found)
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {filteredStudents.map((student) => (
-                    <Card key={student.id} className="overflow-hidden">
-                      <CardContent className="p-0">
-                        <div className="flex items-center p-4 gap-4">
-                          {/* Avatar */}
-                          <div className="h-12 w-12 rounded-full overflow-hidden bg-muted shrink-0">
-                            <img
-                              src={student.avatar || "/placeholder.svg?height=100&width=100"}
-                              alt={student.name}
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
+                  {Object.keys(students).length > 0 ? (
+                    <Accordion type="multiple" className="w-full">
+                      {getStudentsByDeaneryAndParish()
+                        .filter((deaneryGroup) => {
+                          // Filter based on search term
+                          if (!searchTerm) return true
+                          return deaneryGroup.parishes.some((parishGroup) =>
+                            parishGroup.students.some(
+                              (student) =>
+                                student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                student.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                student.parish.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                student.deanery.toLowerCase().includes(searchTerm.toLowerCase()),
+                            ),
+                          )
+                        })
+                        .map((deaneryGroup, deaneryIndex) => (
+                          <AccordionItem
+                            key={deaneryGroup.name}
+                            value={`deanery-${deaneryIndex}`}
+                            className="border rounded-lg mb-2"
+                          >
+                            <AccordionTrigger className="px-4 hover:no-underline bg-gray-50 dark:bg-slate-900 rounded-t-lg">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-lg text-indigo-700 dark:text-indigo-400">
+                                  🏛️ {deaneryGroup.name}
+                                </span>
+                                <Badge variant="secondary">
+                                  {deaneryGroup.parishes.reduce((sum, p) => sum + p.students.length, 0)} Participants
+                                </Badge>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="p-4 bg-white dark:bg-slate-950 rounded-b-lg">
+                              <Accordion type="multiple" className="w-full space-y-2">
+                                {deaneryGroup.parishes
+                                  .filter((parishGroup) => {
+                                    // Filter parishes based on search term
+                                    if (!searchTerm) return true
+                                    return parishGroup.students.some(
+                                      (student) =>
+                                        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                        student.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                        student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                        student.parish.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                        student.deanery.toLowerCase().includes(searchTerm.toLowerCase()),
+                                    )
+                                  })
+                                  .map((parishGroup, parishIndex) => {
+                                    const parishStudents = searchTerm
+                                      ? parishGroup.students.filter(
+                                          (student) =>
+                                            student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            student.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            student.parish.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            student.deanery.toLowerCase().includes(searchTerm.toLowerCase()),
+                                        )
+                                      : parishGroup.students
 
-                          <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                              <h3 className="font-bold truncate">{student.name}</h3>
-                              <p className="text-sm text-muted-foreground truncate">ID: {student.id}</p>
-                              {student.phone && (
-                                <p className="text-xs text-muted-foreground flex items-center mt-1">
-                                  📞 {student.phone}
-                                </p>
-                              )}
-                            </div>
-                            <div>
-                              <p className="text-sm truncate">{student.program}</p>
-                              <p className="text-sm text-muted-foreground">Year: {student.year}</p>
-                              <p className="text-xs text-muted-foreground truncate mt-1">✉️ {student.email}</p>
-                            </div>
-                            <div>
-                              {student.parish && <p className="text-sm truncate">Parish: {student.parish}</p>}
-                              {student.deanery && (
-                                <p className="text-sm text-muted-foreground truncate">Deanery: {student.deanery}</p>
-                              )}
-                            </div>
-                          </div>
+                                    return (
+                                      <AccordionItem
+                                        key={parishGroup.name}
+                                        value={`parish-${deaneryIndex}-${parishIndex}`}
+                                        className="border rounded-md"
+                                      >
+                                        <AccordionTrigger className="px-4 py-2 hover:no-underline hover:bg-gray-50 dark:hover:bg-slate-900">
+                                          <div className="flex items-center gap-2">
+                                            <span className="font-medium text-slate-700 dark:text-slate-300">
+                                              ⛪ {parishGroup.name}
+                                            </span>
+                                            <Badge variant="outline">{parishStudents.length}</Badge>
+                                          </div>
+                                        </AccordionTrigger>
+                                        <AccordionContent className="p-4">
+                                          <div className="space-y-4">
+                                            {parishStudents.map((student) => (
+                                              <Card key={student.id} className="overflow-hidden">
+                                                <CardContent className="p-0">
+                                                  <div className="flex items-center p-4 gap-4">
+                                                    {/* Avatar */}
+                                                    <div className="h-12 w-12 rounded-full overflow-hidden bg-muted shrink-0">
+                                                      <img
+                                                        src={student.avatar || "/placeholder.svg?height=100&width=100"}
+                                                        alt={student.name}
+                                                        className="h-full w-full object-cover"
+                                                      />
+                                                    </div>
 
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline">{student.courses.length} modules</Badge>
+                                                    <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                      <div>
+                                                        <h3 className="font-bold truncate">{student.name}</h3>
+                                                        <p className="text-sm text-muted-foreground truncate">
+                                                          ID: {student.id}
+                                                        </p>
+                                                        {student.phone && (
+                                                          <p className="text-xs text-muted-foreground flex items-center mt-1">
+                                                            📞 {student.phone}
+                                                          </p>
+                                                        )}
+                                                      </div>
+                                                      <div>
+                                                        <p className="text-sm truncate">{student.program}</p>
+                                                        <p className="text-sm text-muted-foreground">
+                                                          Year: {student.year}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground truncate mt-1">
+                                                          ✉️ {student.email}
+                                                        </p>
+                                                      </div>
+                                                      <div>
+                                                        {student.parish && (
+                                                          <p className="text-sm truncate">Parish: {student.parish}</p>
+                                                        )}
+                                                        {student.deanery && (
+                                                          <p className="text-sm text-muted-foreground truncate">
+                                                            Deanery: {student.deanery}
+                                                          </p>
+                                                        )}
+                                                      </div>
+                                                    </div>
 
-                            <Button size="sm" variant="outline" onClick={() => openEditDialog(student)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
+                                                    <div className="flex items-center gap-2">
+                                                      <Badge variant="outline">{student.courses.length} modules</Badge>
 
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button size="sm" variant="destructive">
-                                  <UserX className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Participant</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete {student.name}? This action cannot be undone and
-                                    will remove all their module data.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDeleteStudent(student.id)}
-                                    className="bg-red-600 hover:bg-red-700"
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  {filteredStudents.length === 0 && (
+                                                      <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => openEditDialog(student)}
+                                                      >
+                                                        <Pencil className="h-4 w-4" />
+                                                      </Button>
+
+                                                      <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                          <Button size="sm" variant="destructive">
+                                                            <UserX className="h-4 w-4" />
+                                                          </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                          <AlertDialogHeader>
+                                                            <AlertDialogTitle>Delete Participant</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                              Are you sure you want to delete {student.name}? This
+                                                              action cannot be undone and will remove all their module
+                                                              data.
+                                                            </AlertDialogDescription>
+                                                          </AlertDialogHeader>
+                                                          <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                            <AlertDialogAction
+                                                              onClick={() => handleDeleteStudent(student.id)}
+                                                              className="bg-red-600 hover:bg-red-700"
+                                                            >
+                                                              Delete
+                                                            </AlertDialogAction>
+                                                          </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                      </AlertDialog>
+                                                    </div>
+                                                  </div>
+                                                </CardContent>
+                                              </Card>
+                                            ))}
+                                          </div>
+                                        </AccordionContent>
+                                      </AccordionItem>
+                                    )
+                                  })}
+                              </Accordion>
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                    </Accordion>
+                  ) : (
                     <div className="text-center py-8 text-gray-500">
-                      <p>No participants found matching your search criteria.</p>
+                      <p>No participants found. Add your first participant above!</p>
                     </div>
                   )}
                 </div>
@@ -1741,7 +1857,7 @@ export function AdminPanel() {
                           🏛️ {deaneryGroup.name}
                         </AccordionTrigger>
                         <AccordionContent className="pt-2 px-2">
-                          <Accordion type="multiple" className="w-full pl-4 border-l-2">
+                          <Accordion type="multiple" className="w-full space-y-2">
                             {deaneryGroup.parishes.map((parishGroup, pIndex) => (
                               <AccordionItem key={parishGroup.name} value={`parish-${index}-${pIndex}`}>
                                 <AccordionTrigger className="text-md font-semibold text-primary">
