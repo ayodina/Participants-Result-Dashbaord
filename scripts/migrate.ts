@@ -78,6 +78,27 @@ async function main() {
       }
       console.log("Columns check completed.")
     }
+
+    console.log("Updating instructor to mode...")
+    const modeMigrationFile = path.join(process.cwd(), "scripts/004_change_instructor_to_mode.sql")
+    if (fs.existsSync(modeMigrationFile)) {
+      const modeSql = fs.readFileSync(modeMigrationFile, "utf8")
+      // Split by DO $$ ... $$ blocks is tricky, so we just run the whole file content as one if it's a block,
+      // but our file has DO block and updates.
+      // Since the file content is small and specific, let's just read it.
+      // The neon driver might execute multiple statements if passed directly.
+      // If not, we should split carefully.
+
+      // Simple split by semicolon might break the DO block.
+      // Instead, let's just execute the file content as one command if possible, or split by specific markers.
+      // For safety with the DO block, let's just execute the whole string if the driver supports it.
+      try {
+        await sql(modeSql)
+        console.log("Mode migration executed successfully.")
+      } catch (e: any) {
+        console.error("Error executing mode migration:", e.message)
+      }
+    }
   } catch (error) {
     console.error("Migration failed:", error)
     process.exit(1)

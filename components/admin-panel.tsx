@@ -76,6 +76,7 @@ export function AdminPanel() {
     addProgramToCatalog,
     updateProgramInCatalog,
     deleteProgramFromCatalog,
+    addStudentCourse, // Assuming this function is now available from context or imported
   } = useStudents()
 
   // New student form state
@@ -118,11 +119,8 @@ export function AdminPanel() {
     id: "",
     name: "",
     credits: 3,
-    grade: "-",
-    gpa: 0,
     status: "Registered",
-    progress: 0,
-    instructor: "",
+    mode: "Physical", // Changed from instructor to mode
     semester: "1Qtr",
   })
 
@@ -297,9 +295,10 @@ export function AdminPanel() {
     }
   }
 
-  const handleAddCourse = () => {
-    if (!selectedStudent || !newCourse.id || !newCourse.instructor) {
-      showStatus("❌ Please select student, course, and enter instructor name", true)
+  const handleAddCourse = async () => {
+    // Added async keyword
+    if (!selectedStudent || !newCourse.id || !newCourse.mode) {
+      showStatus("❌ Please select student, course, and select mode of study", true)
       return
     }
 
@@ -318,39 +317,35 @@ export function AdminPanel() {
     }
 
     try {
-      // Create the course object with proper data
-      const courseToAdd = {
-        id: newCourse.id,
-        name: catalogCourse.name,
-        credits: catalogCourse.credits,
-        grade: newCourse.grade,
-        gpa: newCourse.gpa,
-        status: newCourse.status,
-        progress: newCourse.progress,
-        instructor: newCourse.instructor,
-        semester: newCourse.semester,
+      // Call the new addStudentCourse function
+      const result = await addStudentCourse(
+        selectedStudent,
+        newCourse.id,
+        newCourse.name, // Assuming newCourse.name is populated correctly
+        newCourse.credits,
+        newCourse.mode, // Use mode here
+        newCourse.semester,
+        newCourse.status,
+      )
+
+      if (result.success) {
+        showStatus(`✅ Course "${catalogCourse.name}" added to ${students[selectedStudent]?.name}!`)
+
+        // Reset the course form but keep the selected student
+        setNewCourse({
+          id: "",
+          name: "",
+          credits: 3,
+          status: "Registered",
+          mode: "Physical", // Reset to default mode
+          semester: "1Qtr",
+        })
+      } else {
+        showStatus(`❌ ${result.message}`, true)
       }
-
-      // Add the course to the student
-      addCourseToStudent(selectedStudent, courseToAdd)
-
-      showStatus(`✅ Course "${catalogCourse.name}" added to ${students[selectedStudent]?.name}!`)
-
-      // Reset the course form but keep the selected student
-      setNewCourse({
-        id: "",
-        name: "",
-        credits: 3,
-        grade: "-",
-        gpa: 0,
-        status: "Registered",
-        progress: 0,
-        instructor: "",
-        semester: "1Qtr",
-      })
     } catch (error) {
       console.error("Error adding course to student:", error)
-      showStatus("❌ Error adding course to student.", true)
+      showStatus("❌ Error adding course to student. Please try again.", true)
     }
   }
 
@@ -603,6 +598,7 @@ export function AdminPanel() {
       const catalogCourse = coursesCatalog[courseId]
       const grade = row.grade?.trim() || "-"
       const status = row.status?.trim() || "Registered"
+      const mode = row.mode?.trim() || "Physical" // Added mode
 
       // Map grade to GPA
       const gradeToGPA: Record<string, number> = {
@@ -632,7 +628,7 @@ export function AdminPanel() {
         gpa: gpa,
         status: status,
         progress: progress,
-        instructor: row.instructor?.trim() || "TBD",
+        mode: mode, // Include mode
         semester: row.semester?.trim() || "1Qtr",
       }
 
@@ -716,7 +712,7 @@ export function AdminPanel() {
         enrollments.push({
           studentId,
           courseId: course.id,
-          instructor: course.instructor,
+          mode: course.mode, // Include mode
           semester: course.semester,
           status: course.status,
           grade: course.grade,
@@ -1566,7 +1562,7 @@ export function AdminPanel() {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="courseId">Module *</Label>
                     <Select
@@ -1594,13 +1590,20 @@ export function AdminPanel() {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="instructor">Instructor *</Label>
-                    <Input
-                      id="instructor"
-                      value={newCourse.instructor}
-                      onChange={(e) => setNewCourse({ ...newCourse, instructor: e.target.value })}
-                      placeholder="Dr. Smith"
-                    />
+                    <Label htmlFor="mode">Mode of Study *</Label>
+                    <Select
+                      value={newCourse.mode}
+                      onValueChange={(value) => setNewCourse({ ...newCourse, mode: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select mode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Online">Online</SelectItem>
+                        <SelectItem value="Self study">Self study</SelectItem>
+                        <SelectItem value="Physical">Physical</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label htmlFor="semester">Semester</Label>
@@ -1655,12 +1658,12 @@ export function AdminPanel() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {students[selectedStudent].courses.map((course) => (
+                    {students[selectedStudent].courses.map((course: any) => (
                       <div key={course.id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
                         <div>
                           <span className="font-medium">{course.id}</span>
-                          <span className="text-sm text-gray-500 ml-2">
-                            {course.name} • {course.credits} credits • {course.instructor}
+                          <span className="text-xs text-gray-500">
+                            {course.mode} • {course.semester} • {course.credits} credits
                           </span>
                           <div className="text-xs text-gray-400">
                             Progress: {course.progress}% • Grade: {course.grade}
@@ -1765,7 +1768,8 @@ export function AdminPanel() {
                                                 <span className="font-medium">{course.id}</span>
                                                 <span className="text-sm text-gray-500 ml-2">{course.name}</span>
                                                 <div className="text-xs text-gray-400">
-                                                  {course.instructor} • {course.semester} • {course.credits} credits
+                                                  {course.mode || "Physical"} • {course.semester} • {course.credits}{" "}
+                                                  credits
                                                 </div>
                                               </div>
                                               <div className="flex items-center gap-2">

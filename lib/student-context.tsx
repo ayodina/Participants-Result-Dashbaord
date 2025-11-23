@@ -99,7 +99,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
             gpa: c.gpa || 0,
             status: c.status,
             progress: c.progress || 0,
-            instructor: c.instructor || "TBD",
+            mode: c.mode || "Physical", // Changed from instructor
             semester: c.semester,
           })),
           gradeHistory: studentGradeHistory.map((g: any) => ({
@@ -116,6 +116,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
           name: course.name,
           credits: course.credits,
           department: course.department,
+          mode: course.mode || "Physical", // Added mode to catalog
         }
       })
 
@@ -281,7 +282,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
         gpa: course.gpa || 0,
         status: course.status,
         progress: course.progress || 0,
-        instructor: course.instructor,
+        mode: course.mode, // Changed from instructor
         semester: course.semester,
       })
 
@@ -373,7 +374,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
         name: courseData.name,
         credits: courseData.credits,
         department: courseData.department,
-        instructor: courseData.instructor || null,
+        mode: courseData.mode || "Physical", // Changed from instructor
       })
 
       if (error) throw error

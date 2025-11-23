@@ -19,7 +19,11 @@ export default function Home() {
   }
 
   if (!isLoggedIn) {
-    return <LoginForm onLogin={handleLogin} />
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 dark:from-gray-900 dark:via-purple-900 dark:to-indigo-900">
+        <LoginForm onLogin={handleLogin} />
+      </div>
+    )
   }
 
   return <Dashboard student={student} onLogout={handleLogout} />

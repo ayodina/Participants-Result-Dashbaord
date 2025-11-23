@@ -82,7 +82,7 @@ export function LoginForm({ onLogin }: LoginFormProps) {
               gpa: c.gpa || 0,
               status: c.status,
               progress: c.progress || 0,
-              instructor: c.instructor || "TBD",
+              mode: c.mode || "Physical",
               semester: c.semester,
             })) || [],
           gradeHistory:

@@ -258,7 +258,7 @@ export function Dashboard({ student, onLogout }: DashboardProps) {
                     >
                       <div>
                         <h4 className="font-medium">{course.name}</h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{course.instructor}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{course.mode}</p>
                       </div>
                       <div className="text-right">
                         <Progress value={course.progress} className="w-20 mb-1" />
@@ -333,7 +333,7 @@ export function Dashboard({ student, onLogout }: DashboardProps) {
                         <div>
                           <h3 className="font-semibold dark:text-white">{course.name}</h3>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {course.instructor} • {course.credits} credits • {course.semester}
+                            {course.mode} • {course.credits} credits • {course.semester}
                           </p>
                         </div>
                         <Badge className={getStatusColor(course.status)}>{course.status}</Badge>
