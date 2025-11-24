@@ -31,6 +31,7 @@ import {
   Building2,
 } from "lucide-react"
 import { calculateGPA } from "@/lib/student-data"
+import { ParticipantGradesView } from "@/components/participant-grades-view"
 
 interface DashboardProps {
   student: any
@@ -401,8 +402,11 @@ export function Dashboard({ student, onLogout }: DashboardProps) {
           </TabsContent>
 
           <TabsContent value="grades" className="space-y-6">
+            <ParticipantGradesView studentId={student.id} />
+
+            {/* Legacy grade summary - kept for reference */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
+              <Card className="dark:bg-gray-900 dark:border-gray-800">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <BarChart3 className="h-5 w-5" />
