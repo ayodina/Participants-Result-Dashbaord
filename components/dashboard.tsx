@@ -25,6 +25,10 @@ import {
   Camera,
   Save,
   X,
+  Mail,
+  Phone,
+  MapPin,
+  Building2,
 } from "lucide-react"
 import { calculateGPA } from "@/lib/student-data"
 
@@ -178,6 +182,48 @@ export function Dashboard({ student, onLogout }: DashboardProps) {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Contact Information */}
+        <div className="mb-8">
+          <Card className="dark:bg-gray-900 dark:border-gray-800">
+            <CardHeader>
+              <CardTitle className="dark:text-white">Contact Information</CardTitle>
+              <CardDescription className="dark:text-gray-400">Your personal and location details</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Email</p>
+                    <p className="font-medium dark:text-white">{student.email || "Not provided"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <Phone className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Phone Number</p>
+                    <p className="font-medium dark:text-white">{student.phone || "Not provided"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <MapPin className="h-5 w-5 text-red-600 dark:text-red-400" />
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Parish</p>
+                    <p className="font-medium dark:text-white">{student.parish || "Not provided"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <Building2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Deanery</p>
+                    <p className="font-medium dark:text-white">{student.deanery || "Not provided"}</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Quick Stats */}
